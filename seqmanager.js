@@ -4,9 +4,15 @@ class SeqManager {
         this.addSeq();
         this.lt = millis();
         this.dur = 15000;
+        this.score = 0; // Puntuación del jugador
     }
 
     display() {
+        // Mostrar puntuación
+        fill(255);
+        textSize(40);
+        text(`Score: ${this.score}`, width - 200, 50);
+
         for (let i = this.seqs.length - 1; i >= 0; i--) {
             this.seqs[i].display();
         }
@@ -16,6 +22,7 @@ class SeqManager {
         for (let i = this.seqs.length - 1; i >= 0; i--) {
             this.seqs[i].update();
             if (this.seqs[i].todosTouch()) {
+                this.score++; // Sumar punto al completar secuencia
                 this.seqs.splice(i, 1);
             }
         }
@@ -48,10 +55,22 @@ class Seq {
     }
 
     display() {
+        // Dibujar líneas entre puntos con diferentes estilos
         for (let i = this.pnts.length - 1; i >= 0; i--) {
-            stroke(255, 150);
-            strokeWeight(5);
-            if (this.pnts.length > 1 && i < this.pnts.length - 1) {
+            if (i < this.pnts.length - 1) {
+                if (i < this.idxactive - 1) {
+                    // Línea completada
+                    stroke(0, 255, 0, 150);
+                    strokeWeight(8);
+                } else if (i === this.idxactive - 1) {
+                    // Línea actual
+                    stroke(255, 255, 0, 150);
+                    strokeWeight(8);
+                } else {
+                    // Línea futura
+                    stroke(100, 100, 100, 150);
+                    strokeWeight(5);
+                }
                 line(
                     this.pnts[i].pos.x,
                     this.pnts[i].pos.y,
@@ -61,16 +80,25 @@ class Seq {
             }
         }
 
-        for (let i = this.pnts.length - 1; i >= 0; i--) {
-            this.pnts[i].display();
+        // Actualizar estados y dibujar puntos
+        for (let i = 0; i < this.pnts.length; i++) {
+            const p = this.pnts[i];
+            if (i < this.idxactive) {
+                p.setState('active');
+            } else if (i === this.idxactive) {
+                p.setState('selectable');
+            } else {
+                p.setState('inactive');
+            }
+            p.display();
         }
 
-
+        // Dibujar puntos del servidor
         const allPlayerPoints = Pserver.getAllPoints();
         for(let k = 0; k < allPlayerPoints.length; k++) {
             const pp = allPlayerPoints[k];
-            fill(255,0,0);
-            ellipse(pp.x,pp.y,40,40)
+            fill(255, 0, 0, 150);
+            ellipse(pp.x, pp.y, 40, 40);
         }
     }
 
@@ -126,6 +154,7 @@ class Seq {
         for(let i = 0; i < this.pnts.length; i++) {
             this.pnts[i].active = false;
         }
+        this.score--; // Restar punto cuando se reinicia una secuencia
     }
     todosTouch() {
         return this.pnts.every(p => p.active);
@@ -139,19 +168,45 @@ class Pnt {
         this.idx = _idx;
         this.c = _c;
         this.active = false;
+        this.state = 'inactive'; // 'active', 'selectable', 'inactive'
     }
     
     display() {
-        if (this.active) {
-            fill(255);
-            ellipse(this.pos.x, this.pos.y, this.r * 1.3, this.r * 1.3);
+        this.drawPoint();
+        this.drawNumber();
+    }
+
+    drawPoint() {
+        switch(this.state) {
+            case 'active':
+                // Punto seleccionado
+                fill(0, 255, 0);
+                ellipse(this.pos.x, this.pos.y, this.r * 1.3, this.r * 1.3);
+                fill(0, 200, 0);
+                break;
+            case 'selectable':
+                // Punto seleccionable
+                fill(255, 255, 0);
+                ellipse(this.pos.x, this.pos.y, this.r * 1.2, this.r * 1.2);
+                fill(200, 200, 0);
+                break;
+            default:
+                // Punto inactivo
+                fill(100, 100, 100);
         }
-        fill(this.c);
         ellipse(this.pos.x, this.pos.y, this.r, this.r);
+    }
+
+    drawNumber() {
         fill(255);
-        textAlign(CENTER);
+        textAlign(CENTER, CENTER);
         textSize(40);
-        text(this.idx.toString(), this.pos.x, this.pos.y);
+        text(this.idx.toString(), this.pos.x, this.pos.y + 5);
+    }
+
+    setState(state) {
+        this.state = state;
+        this.active = state === 'active';
     }
     
     update() {

@@ -12,6 +12,7 @@ class PointServer {
 		// Dibujamos todos los puntos (LIDAR + input)
 		const allPoints = [...this.points, ...this.inputPoints];
 
+		textAlign(LEFT,LEFT)
 		fill(255);
 		textSize(30);
 		text(`Puntos Totales: ${allPoints.length}`, 40, 40);
