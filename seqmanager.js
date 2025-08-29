@@ -220,22 +220,44 @@ class Pnt {
     drawPoint() {
         switch(this.state) {
             case 'active':
-                // Punto seleccionado
-                fill(0, 255, 0);
-                ellipse(this.pos.x, this.pos.y, this.r * 1.3, this.r * 1.3);
+                // Punto seleccionado - Verde brillante con borde pulsante
+                noStroke();
+                fill(0, 255, 0, 50);
+                ellipse(this.pos.x, this.pos.y, this.r * 1.4, this.r * 1.4);
+                
+                stroke(0, 255, 0);
+                strokeWeight(3);
                 fill(0, 200, 0);
-                break;
-            case 'selectable':
-                // Punto seleccionable
-                fill(255, 255, 0);
                 ellipse(this.pos.x, this.pos.y, this.r * 1.2, this.r * 1.2);
-                fill(200, 200, 0);
+                
+                noStroke();
+                fill(0, 255, 0);
+                ellipse(this.pos.x, this.pos.y, this.r * 0.8, this.r * 0.8);
                 break;
+
+            case 'selectable':
+                // Punto seleccionable - Amarillo con borde pulsante
+                noStroke();
+                fill(255, 255, 0, 50);
+                ellipse(this.pos.x, this.pos.y, this.r * 1.4, this.r * 1.4);
+                
+                stroke(255, 255, 0);
+                strokeWeight(3);
+                fill(200, 200, 0);
+                ellipse(this.pos.x, this.pos.y, this.r, this.r);
+                
+                noStroke();
+                fill(255, 255, 0);
+                ellipse(this.pos.x, this.pos.y, this.r * 0.6, this.r * 0.6);
+                break;
+
             default:
-                // Punto inactivo
+                // Punto inactivo - Gris con borde sutil
+                stroke(150, 150, 150);
+                strokeWeight(1);
                 fill(100, 100, 100);
+                ellipse(this.pos.x, this.pos.y, this.r, this.r);
         }
-        ellipse(this.pos.x, this.pos.y, this.r, this.r);
     }
 
     drawNumber() {
