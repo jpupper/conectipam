@@ -57,7 +57,7 @@ class Seq {
     }
 
     display() {
-        this.animOffset = (this.animOffset + 2) % 60; // Velocidad de animación
+        this.animOffset = (this.animOffset + 0.2) % 60; // Velocidad de animación más lenta
         
         // Dibujar líneas entre puntos con diferentes estilos
         for (let i = this.pnts.length - 1; i >= 0; i--) {
@@ -109,19 +109,19 @@ class Seq {
 
     drawAnimatedLine(x1, y1, x2, y2) {
         // Dibujar línea base más tenue
-        stroke(255, 255, 0, 50);
-        strokeWeight(4);
+        stroke(255, 255, 0, 30);
+        strokeWeight(6);
         line(x1, y1, x2, y2);
         
         // Dibujar puntos animados que se mueven
-        const steps = 5;
+        const steps = 20 // Menos puntos para que se vea más claro
         stroke(255, 255, 0);
         for (let i = 0; i < steps; i++) {
             const pos = (this.animOffset + i * (60/steps)) % 60;
             const t = pos / 60;
             const px = lerp(x1, x2, t);
             const py = lerp(y1, y2, t);
-            strokeWeight(12);
+            strokeWeight(15);
             point(px, py);
         }
     }
