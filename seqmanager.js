@@ -44,6 +44,8 @@ class Seq {
         const cnt = 5;
         const cf = color(random(100, 255), random(100, 255), random(100, 255));
         this.pointeridx = -1; //OSEA CUAL ES EL POINTER AL QUE ESTA RELACIONADO.
+        this.animOffset = 0; // Para las animaciones
+        this.animOffset = 0; // Para las animaciones
         for (let i = 0; i < cnt; i++) {
             this.pnts.push(new Pnt(
                 random(width * 1/8, width * 7/8),
@@ -55,28 +57,31 @@ class Seq {
     }
 
     display() {
+        this.animOffset = (this.animOffset + 2) % 60; // Velocidad de animación
+        
         // Dibujar líneas entre puntos con diferentes estilos
         for (let i = this.pnts.length - 1; i >= 0; i--) {
             if (i < this.pnts.length - 1) {
+                const x1 = this.pnts[i].pos.x;
+                const y1 = this.pnts[i].pos.y;
+                const x2 = this.pnts[i + 1].pos.x;
+                const y2 = this.pnts[i + 1].pos.y;
+                
                 if (i < this.idxactive - 1) {
-                    // Línea completada
-                    stroke(0, 255, 0, 150);
+                    // Línea completada - animación pulsante
+                    const pulseIntensity = map(sin(frameCount * 0.1), -1, 1, 100, 255);
+                    stroke(0, pulseIntensity, 0, 200);
                     strokeWeight(8);
+                    line(x1, y1, x2, y2);
                 } else if (i === this.idxactive - 1) {
-                    // Línea actual
-                    stroke(255, 255, 0, 150);
+                    // Línea actual - animación direccional
+                    stroke(255, 255, 0);
                     strokeWeight(8);
+                    this.drawAnimatedLine(x1, y1, x2, y2);
                 } else {
-                    // Línea futura
-                    stroke(100, 100, 100, 150);
-                    strokeWeight(5);
+                    // Línea futura - interlineada
+                    this.drawDashedLine(x1, y1, x2, y2);
                 }
-                line(
-                    this.pnts[i].pos.x,
-                    this.pnts[i].pos.y,
-                    this.pnts[i + 1].pos.x,
-                    this.pnts[i + 1].pos.y
-                );
             }
         }
 
@@ -99,6 +104,42 @@ class Seq {
             const pp = allPlayerPoints[k];
             fill(255, 0, 0, 150);
             ellipse(pp.x, pp.y, 40, 40);
+        }
+    }
+
+    drawAnimatedLine(x1, y1, x2, y2) {
+        // Dibujar línea base más tenue
+        stroke(255, 255, 0, 50);
+        strokeWeight(4);
+        line(x1, y1, x2, y2);
+        
+        // Dibujar puntos animados que se mueven
+        const steps = 5;
+        stroke(255, 255, 0);
+        for (let i = 0; i < steps; i++) {
+            const pos = (this.animOffset + i * (60/steps)) % 60;
+            const t = pos / 60;
+            const px = lerp(x1, x2, t);
+            const py = lerp(y1, y2, t);
+            strokeWeight(12);
+            point(px, py);
+        }
+    }
+    
+    drawDashedLine(x1, y1, x2, y2) {
+        const segments = 12;
+        const dx = (x2 - x1) / segments;
+        const dy = (y2 - y1) / segments;
+        
+        stroke(100, 100, 100, 80);
+        strokeWeight(3);
+        
+        for (let i = 0; i < segments; i += 2) {
+            const startX = x1 + dx * i;
+            const startY = y1 + dy * i;
+            const endX = x1 + dx * (i + 1);
+            const endY = y1 + dy * (i + 1);
+            line(startX, startY, endX, endY);
         }
     }
 
