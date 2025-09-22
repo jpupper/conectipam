@@ -4,15 +4,11 @@ class SeqManager {
         this.addSeq();
         this.lt = millis();
         this.dur = 15000;
-        this.score = 0; // Puntuación del jugador
+        // Eliminamos la puntuación interna ya que ahora usamos el sistema de puntuación
     }
 
     display() {
-        // Mostrar puntuación
-        fill(255);
-        textSize(40);
-        text(`Score: ${this.score}`, width - 200, 50);
-
+        // Ya no necesitamos mostrar la puntuación aquí, lo hace el sistema de puntuación
         for (let i = this.seqs.length - 1; i >= 0; i--) {
             this.seqs[i].display();
         }
@@ -22,17 +18,24 @@ class SeqManager {
         for (let i = this.seqs.length - 1; i >= 0; i--) {
             this.seqs[i].update();
             if (this.seqs[i].todosTouch()) {
-                this.score++; // Sumar punto al completar secuencia
+                // Sumar puntos al completar secuencia usando el sistema de puntuación
+                const points = 10; // Cada secuencia completa vale 10 puntos base
                 
                 // Create explosion effect at the center of the last point
                 const lastPoint = this.seqs[i].pnts[this.seqs[i].pnts.length - 1];
                 const centerX = lastPoint.pos.x;
                 const centerY = lastPoint.pos.y;
                 
+                // Añadir puntuación con animación en la posición del último punto
+                scoreSystem.addScore(points, centerX, centerY);
+                
                 // Create explosions at each point in the sequence
                 for (let j = 0; j < this.seqs[i].pnts.length; j++) {
                     const point = this.seqs[i].pnts[j];
                     particleSystem.createExplosion(point.pos.x, point.pos.y, point.c);
+                    
+                    // Añadir ondas en el fondo para cada punto
+                    dynamicBackground.addRipple(point.pos.x, point.pos.y);
                 }
                 
                 this.seqs.splice(i, 1);
@@ -195,6 +198,11 @@ class Seq {
                         // Create hover particles with a moderate frequency
                         if (frameCount % 3 === 0) { // Reducido de 5 a 3 frames para generar más partículas
                             particleSystem.createHoverEffect(p.pos.x, p.pos.y, p.c);
+                            
+                            // Añadir ondas sutiles en el fondo
+                            if (frameCount % 15 === 0) {
+                                dynamicBackground.addRipple(p.pos.x, p.pos.y);
+                            }
                         }
                     }
                 }
@@ -229,7 +237,8 @@ class Seq {
         for(let i = 0; i < this.pnts.length; i++) {
             this.pnts[i].active = false;
         }
-        this.score--; // Restar punto cuando se reinicia una secuencia
+        // Restar punto cuando se reinicia una secuencia
+        if (scoreSystem) scoreSystem.addScore(-5, width/2, height/2); // Penalización por reiniciar
     }
     todosTouch() {
         return this.pnts.every(p => p.active);
@@ -259,45 +268,87 @@ class Pnt {
     drawPoint() {
         switch(this.state) {
             case 'active':
-                // Punto seleccionado - Verde brillante con borde pulsante
-                noStroke();
-                fill(0, 255, 0, 50);
-                ellipse(this.pos.x, this.pos.y, this.r * 1.4, this.r * 1.4);
+                // Punto seleccionado - Verde brillante con efectos avanzados
+                // Aura exterior pulsante
+                const pulseActive = map(sin(frameCount * 0.1), -1, 1, 0.9, 1.6);
+                const glowIntensity = map(sin(frameCount * 0.05), -1, 1, 30, 80);
                 
-                stroke(0, 255, 0);
+                // Capa de brillo exterior
+                for (let i = 5; i > 0; i--) {
+                    noStroke();
+                    fill(0, 255, 0, glowIntensity / (i * 2));
+                    ellipse(this.pos.x, this.pos.y, this.r * (1.5 + i*0.15) * pulseActive, this.r * (1.5 + i*0.15) * pulseActive);
+                }
+                
+                // Anillo principal
+                stroke(0, 255, 100);
                 strokeWeight(3);
-                fill(0, 200, 0);
+                fill(0, 200, 0, 220);
                 ellipse(this.pos.x, this.pos.y, this.r * 1.2, this.r * 1.2);
                 
+                // Centro brillante
                 noStroke();
-                fill(0, 255, 0);
+                fill(100, 255, 100);
                 ellipse(this.pos.x, this.pos.y, this.r * 0.8, this.r * 0.8);
+                
+                // Destello central
+                fill(255, 255, 255, 150 + 100 * sin(frameCount * 0.2));
+                ellipse(this.pos.x, this.pos.y, this.r * 0.3, this.r * 0.3);
                 break;
 
             case 'selectable':
-                // Punto seleccionable - Amarillo con borde pulsante
-                noStroke();
-                fill(255, 255, 0, 50);
-                ellipse(this.pos.x, this.pos.y, this.r * 1.4, this.r * 1.4);
+                // Punto seleccionable - Amarillo con efectos pulsantes
+                const pulseSelectable = map(sin(frameCount * 0.15), -1, 1, 1, 1.4);
                 
-                stroke(255, 255, 0);
-                strokeWeight(3);
-                fill(200, 200, 0);
-                ellipse(this.pos.x, this.pos.y, this.r, this.r);
+                // Aura exterior
+                for (let i = 4; i > 0; i--) {
+                    noStroke();
+                    fill(255, 255, 0, 15);
+                    ellipse(this.pos.x, this.pos.y, this.r * (1.4 + i*0.1) * pulseSelectable, this.r * (1.4 + i*0.1) * pulseSelectable);
+                }
                 
+                // Anillo de atención pulsante
+                strokeWeight(3 + sin(frameCount * 0.2));
+                stroke(255, 255, 0, 150 + 100 * sin(frameCount * 0.1));
+                fill(200, 200, 0, 180);
+                ellipse(this.pos.x, this.pos.y, this.r * pulseSelectable, this.r * pulseSelectable);
+                
+                // Centro brillante
                 noStroke();
                 fill(255, 255, 0);
                 ellipse(this.pos.x, this.pos.y, this.r * 0.6, this.r * 0.6);
+                
+                // Destello de atención - usando un círculo brillante en lugar de estrella
+                if (frameCount % 90 < 10) {
+                    fill(255, 255, 255, 200);
+                    const pulseSize = this.r * 0.4 * (1 + 0.2 * sin(frameCount * 0.5));
+                    ellipse(this.pos.x, this.pos.y, pulseSize, pulseSize);
+                }
                 break;
 
             default:
-                // Punto inactivo - Gris con borde sutil
+                // Punto inactivo - Con efecto sutil
+                const pulseInactive = map(sin(frameCount * 0.05), -1, 1, 0.95, 1.05);
+                
+                // Sombra
+                noStroke();
+                fill(50, 50, 50, 100);
+                ellipse(this.pos.x + 2, this.pos.y + 2, this.r, this.r);
+                
+                // Círculo principal
                 stroke(150, 150, 150);
                 strokeWeight(1);
                 fill(100, 100, 100);
-                ellipse(this.pos.x, this.pos.y, this.r, this.r);
+                ellipse(this.pos.x, this.pos.y, this.r * pulseInactive, this.r * pulseInactive);
+                
+                // Reflejo sutil
+                noStroke();
+                fill(150, 150, 150, 100);
+                arc(this.pos.x, this.pos.y, this.r * 0.8, this.r * 0.8, PI, TWO_PI);
         }
     }
+    
+    // Ya no necesitamos la función star
 
     drawNumber() {
         fill(255);
