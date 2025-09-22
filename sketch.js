@@ -1,11 +1,13 @@
 let Pserver;
 let PNT;
 let SQ;
+let particleSystem;
 function setup() {
   createCanvas(windowWidth, windowHeight);
   Pserver = new PointServer();
- // PNT = new PlayerPntsManager();
+  // PNT = new PlayerPntsManager();
   SQ = new SeqManager();
+  particleSystem = new ParticleSystem();
 }
 
 function draw() {
@@ -25,6 +27,9 @@ function draw() {
   Pserver.display();
   Pserver.update();
   
+  // Update and display particle effects
+  particleSystem.update();
+  particleSystem.display();
 }
 
 // Touch event handlers for p5.js

@@ -23,6 +23,18 @@ class SeqManager {
             this.seqs[i].update();
             if (this.seqs[i].todosTouch()) {
                 this.score++; // Sumar punto al completar secuencia
+                
+                // Create explosion effect at the center of the last point
+                const lastPoint = this.seqs[i].pnts[this.seqs[i].pnts.length - 1];
+                const centerX = lastPoint.pos.x;
+                const centerY = lastPoint.pos.y;
+                
+                // Create explosions at each point in the sequence
+                for (let j = 0; j < this.seqs[i].pnts.length; j++) {
+                    const point = this.seqs[i].pnts[j];
+                    particleSystem.createExplosion(point.pos.x, point.pos.y, point.c);
+                }
+                
                 this.seqs.splice(i, 1);
             }
         }
@@ -149,7 +161,7 @@ class Seq {
         }
         
         //CHECKEO SI EL PÜNTERO TIENE UN ID QUE ESTE ASIGNADO A LA SEQUENCIA Y SI EL ID DEJO DE EXISTIR REINICIE LA SECUENCIA : 
-        console.log("pointeridx: ",this.pointeridx);
+        //console.log("pointeridx: ",this.pointeridx);
         if(this.pointeridx != -1){
             let found = false;
             for(let i = 0; i < Pserver.getAllPoints().length; i++) {
@@ -172,6 +184,23 @@ class Seq {
             const p = this.pnts[i];
             const Pserverpoints = Pserver.getAllPoints();
             
+            // Check for hover effects - add minimal particles when hovering
+            if (i === this.idxactive) { // Only for the currently active point
+                for(let k = 0; k < Pserverpoints.length; k++) {
+                    const pp = Pserverpoints[k];
+                    const distance = dist(p.pos.x, p.pos.y, pp.x, pp.y);
+                    
+                    // If close but not touching yet, create hover particles
+                    if (distance < 80 && distance > 40) {
+                        // Create hover particles with a moderate frequency
+                        if (frameCount % 3 === 0) { // Reducido de 5 a 3 frames para generar más partículas
+                            particleSystem.createHoverEffect(p.pos.x, p.pos.y, p.c);
+                        }
+                    }
+                }
+            }
+            
+            // Check for activation
             for(let k = 0; k < Pserverpoints.length; k++) {
                 const pp = Pserverpoints[k];
                 if (dist(p.pos.x, p.pos.y, pp.x, pp.y) < 40 
@@ -184,6 +213,11 @@ class Seq {
                     }
                     p.active = true;
                     this.idxactive++;
+                    
+                    // Create a larger burst of particles when a point is activated
+                    for (let burst = 0; burst < 5; burst++) {
+                        particleSystem.createHoverEffect(p.pos.x, p.pos.y, p.c);
+                    }
                     break;
                 }
             }
@@ -205,7 +239,12 @@ class Seq {
 class Pnt {
     constructor(_x, _y, _idx, _c) {
         this.pos = createVector(_x, _y);
-        this.r = 80;
+        
+        if(width < height){
+            this.r = height*0.08;
+        }else{
+            this.r = width*0.05;
+        }
         this.idx = _idx;
         this.c = _c;
         this.active = false;
