@@ -46,7 +46,20 @@ function draw() {
     scoreSystem.addScore(-10, collisionResult.collisionPoint.x, collisionResult.collisionPoint.y);
     
     // Reiniciar secuencias activas
-    SQ.reiniciarTodasLasSecuencias();
+    console.log('Intentando reiniciar secuencias...');
+    if (SQ && typeof SQ.reiniciarTodasLasSecuencias === 'function') {
+      SQ.reiniciarTodasLasSecuencias();
+    } else {
+      console.error('Error: SQ.reiniciarTodasLasSecuencias no es una función');
+      // Alternativa: reiniciar manualmente cada secuencia
+      if (SQ && SQ.seqs) {
+        for (let i = 0; i < SQ.seqs.length; i++) {
+          if (SQ.seqs[i] && typeof SQ.seqs[i].reiniciarActivos === 'function') {
+            SQ.seqs[i].reiniciarActivos();
+          }
+        }
+      }
+    }
     
     // Reiniciar combo
     scoreSystem.resetCombo();

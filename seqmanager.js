@@ -1,5 +1,6 @@
 class SeqManager {
     constructor() {
+        console.log('SeqManager v2 - Con método reiniciarTodasLasSecuencias');
         this.seqs = [];
         this.addSeq();
         this.lt = millis();
@@ -49,6 +50,18 @@ class SeqManager {
 
     addSeq() {
         this.seqs.push(new Seq());
+    }
+    
+    // Método para reiniciar todas las secuencias activas cuando se golpea un obstáculo
+    reiniciarTodasLasSecuencias() {
+        console.log('Reiniciando todas las secuencias: ' + this.seqs.length);
+        for (let i = 0; i < this.seqs.length; i++) {
+            if (this.seqs[i] && typeof this.seqs[i].reiniciarActivos === 'function') {
+                this.seqs[i].reiniciarActivos();
+            } else {
+                console.error('Error: No se puede reiniciar la secuencia ' + i);
+            }
+        }
     }
 }
 
@@ -241,12 +254,6 @@ class Seq {
         if (scoreSystem) scoreSystem.addScore(-5, width/2, height/2); // Penalización por reiniciar
     }
     
-    // Método para reiniciar todas las secuencias activas cuando se golpea un obstáculo
-    reiniciarTodasLasSecuencias() {
-        for (let i = 0; i < this.seqs.length; i++) {
-            this.seqs[i].reiniciarActivos();
-        }
-    }
     todosTouch() {
         return this.pnts.every(p => p.active);
     }
