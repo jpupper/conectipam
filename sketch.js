@@ -40,29 +40,32 @@ function draw() {
   obstacleSystem.display();
   
   // Comprobar colisiones con obstáculos
-  const collisionResult = obstacleSystem.checkCollisions(Pserver.getAllPoints());
-  if (collisionResult.collision) {
-    // Penalizar al jugador
-    scoreSystem.addScore(-10, collisionResult.collisionPoint.x, collisionResult.collisionPoint.y);
-    
-    // Reiniciar secuencias activas
-    console.log('Intentando reiniciar secuencias...');
-    if (SQ && typeof SQ.reiniciarTodasLasSecuencias === 'function') {
-      SQ.reiniciarTodasLasSecuencias();
-    } else {
-      console.error('Error: SQ.reiniciarTodasLasSecuencias no es una función');
-      // Alternativa: reiniciar manualmente cada secuencia
-      if (SQ && SQ.seqs) {
-        for (let i = 0; i < SQ.seqs.length; i++) {
-          if (SQ.seqs[i] && typeof SQ.seqs[i].reiniciarActivos === 'function') {
-            SQ.seqs[i].reiniciarActivos();
+  if (!scoreSystem.gameOver) { // Solo comprobar colisiones si el juego no ha terminado
+    const collisionResult = obstacleSystem.checkCollisions(Pserver.getAllPoints());
+    if (collisionResult.collision) {
+      // Penalizar al jugador
+      scoreSystem.addScore(-10, collisionResult.collisionPoint.x, collisionResult.collisionPoint.y);
+      
+      // Perder una vida
+      scoreSystem.loseLife();
+      
+      // Reiniciar secuencias activas
+      if (SQ && typeof SQ.reiniciarTodasLasSecuencias === 'function') {
+        SQ.reiniciarTodasLasSecuencias();
+      } else {
+        // Alternativa: reiniciar manualmente cada secuencia
+        if (SQ && SQ.seqs) {
+          for (let i = 0; i < SQ.seqs.length; i++) {
+            if (SQ.seqs[i] && typeof SQ.seqs[i].reiniciarActivos === 'function') {
+              SQ.seqs[i].reiniciarActivos();
+            }
           }
         }
       }
+      
+      // Reiniciar combo
+      scoreSystem.resetCombo();
     }
-    
-    // Reiniciar combo
-    scoreSystem.resetCombo();
   }
   
   // Actualizar y mostrar efectos de partículas
@@ -90,6 +93,10 @@ function draw() {
 
 // Touch event handlers for p5.js
 function touchStarted() {
+  // Reiniciar el juego si está en estado de Game Over
+  if (scoreSystem && scoreSystem.gameOver) {
+    resetGame();
+  }
   return false; // Prevent default
 }
 
@@ -99,6 +106,24 @@ function touchMoved() {
 
 function touchEnded() {
   return false; // Prevent default
+}
+
+function mousePressed() {
+  // Reiniciar el juego si está en estado de Game Over
+  if (scoreSystem && scoreSystem.gameOver) {
+    resetGame();
+  }
+}
+
+function resetGame() {
+  // Reiniciar todos los sistemas
+  Pserver = new PointServer();
+  SQ = new SeqManager();
+  particleSystem = new ParticleSystem();
+  trailSystem = new TrailSystem();
+  dynamicBackground = new DynamicBackground();
+  scoreSystem = new ScoreSystem();
+  obstacleSystem = new ObstacleSystem();
 }
 
 function windowResized() {

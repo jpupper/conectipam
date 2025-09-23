@@ -145,7 +145,7 @@ class ObstacleSystem {
 class Obstacle {
     constructor(x, y) {
         this.pos = createVector(x, y);
-        this.size = random(30, 50);
+        this.size = random(50, 80); // Obstáculos más grandes
         this.color = color(255, 0, 0);
         this.pulsePhase = random(TWO_PI);
     }
