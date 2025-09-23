@@ -16,24 +16,31 @@
         }
     </style>
     <script src="p5.min2.js"></script>
-    <script src="pointserver.js?v=4"></script>
-    <script src="particles.js?v=4"></script>
-    <script src="traileffect.js?v=4"></script>
-    <script src="background.js?v=4"></script>
-    <script src="scoreeffect.js?v=4"></script>
-    <script src="obstacles.js?v=4"></script>
-    <script src="gameoveranimation.js?v=4"></script>
-    <script src="seqmanager.js?v=4"></script>
-    <script src="sketch.js?v=4"></script>
+    <script src="pointserver.js?v=5"></script>
+    <script src="particles.js?v=5"></script>
+    <script src="traileffect.js?v=5"></script>
+    <script src="background.js?v=5"></script>
+    <script src="scoreeffect.js?v=5"></script>
+    <script src="obstacles.js?v=5"></script>
+    <script src="gameoveranimation.js?v=5"></script>
+    <script src="seqmanager.js?v=5"></script>
+    <script src="sketch.js?v=5"></script>
     <script>
         // Forzar recarga sin caché
-        console.log('Forzando recarga de scripts v4 - ' + new Date().toISOString());
+        console.log('Forzando recarga de scripts v5 - ' + new Date().toISOString());
         
         // Limpiar caché de localStorage si existe
         try {
             localStorage.clear();
+            sessionStorage.clear();
+            
+            // Forzar recarga completa si es necesario
+            if (location.href.indexOf('nocache') === -1) {
+                const separator = location.href.indexOf('?') !== -1 ? '&' : '?';
+                // window.location.href = location.href + separator + 'nocache=' + new Date().getTime();
+            }
         } catch (e) {
-            console.log('No se pudo limpiar localStorage');
+            console.log('No se pudo limpiar cache');
         }
     </script>
 </head>
