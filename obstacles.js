@@ -1,0 +1,408 @@
+class ObstacleSystem {
+    constructor() {
+        this.obstacles = [];
+        this.spawnTimer = 0;
+        this.spawnInterval = 5000; // Intervalo inicial de spawn en milisegundos
+        this.minSpawnInterval = 2000; // Intervalo mínimo de spawn
+        this.obstacleSpeed = 1.5; // Velocidad inicial de los obstáculos
+        this.maxObstacles = 10; // Máximo número de obstáculos simultáneos
+        this.failAnimations = []; // Animaciones de fallo
+    }
+
+    update() {
+        // Generar nuevos obstáculos
+        if (millis() - this.spawnTimer > this.spawnInterval && this.obstacles.length < this.maxObstacles) {
+            this.spawnObstacle();
+            this.spawnTimer = millis();
+            
+            // Reducir gradualmente el intervalo de spawn
+            this.spawnInterval = max(this.minSpawnInterval, this.spawnInterval * 0.98);
+        }
+        
+        // Actualizar obstáculos existentes
+        for (let i = this.obstacles.length - 1; i >= 0; i--) {
+            this.obstacles[i].update();
+            
+            // Eliminar obstáculos que salen de la pantalla
+            if (this.obstacles[i].isOffScreen()) {
+                this.obstacles.splice(i, 1);
+            }
+        }
+        
+        // Actualizar animaciones de fallo
+        for (let i = this.failAnimations.length - 1; i >= 0; i--) {
+            this.failAnimations[i].update();
+            if (this.failAnimations[i].isDead()) {
+                this.failAnimations.splice(i, 1);
+            }
+        }
+    }
+    
+    display() {
+        // Mostrar obstáculos
+        for (let obstacle of this.obstacles) {
+            obstacle.display();
+        }
+        
+        // Mostrar animaciones de fallo
+        for (let anim of this.failAnimations) {
+            anim.display();
+        }
+    }
+    
+    spawnObstacle() {
+        // Determinar tipo de obstáculo
+        const obstacleType = random(1) < 0.7 ? 'moving' : 'static';
+        
+        if (obstacleType === 'moving') {
+            // Crear un obstáculo móvil que atraviesa la pantalla
+            const side = floor(random(4)); // 0: arriba, 1: derecha, 2: abajo, 3: izquierda
+            let x, y, vx = 0, vy = 0;
+            
+            switch (side) {
+                case 0: // arriba
+                    x = random(width);
+                    y = -30;
+                    vy = this.obstacleSpeed;
+                    break;
+                case 1: // derecha
+                    x = width + 30;
+                    y = random(height);
+                    vx = -this.obstacleSpeed;
+                    break;
+                case 2: // abajo
+                    x = random(width);
+                    y = height + 30;
+                    vy = -this.obstacleSpeed;
+                    break;
+                case 3: // izquierda
+                    x = -30;
+                    y = random(height);
+                    vx = this.obstacleSpeed;
+                    break;
+            }
+            
+            this.obstacles.push(new MovingObstacle(x, y, vx, vy));
+        } else {
+            // Crear un obstáculo estático en una posición aleatoria
+            // Evitar colocar obstáculos muy cerca de los puntos de secuencia
+            let validPosition = false;
+            let x, y;
+            
+            while (!validPosition) {
+                x = random(width * 0.1, width * 0.9);
+                y = random(height * 0.1, height * 0.9);
+                
+                // Verificar distancia a puntos de secuencia
+                validPosition = true;
+                for (let seq of SQ.seqs) {
+                    for (let pnt of seq.pnts) {
+                        if (dist(x, y, pnt.pos.x, pnt.pos.y) < 100) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                    if (!validPosition) break;
+                }
+            }
+            
+            this.obstacles.push(new StaticObstacle(x, y));
+        }
+    }
+    
+    checkCollisions(points) {
+        // Verificar colisiones entre puntos del jugador y obstáculos
+        let collision = false;
+        let collisionPoint = null;
+        let collisionObstacle = null;
+        
+        for (let point of points) {
+            for (let i = this.obstacles.length - 1; i >= 0; i--) {
+                if (this.obstacles[i].checkCollision(point.x, point.y)) {
+                    collision = true;
+                    collisionPoint = point;
+                    collisionObstacle = this.obstacles[i];
+                    
+                    // Crear animación de fallo
+                    this.createFailAnimation(point.x, point.y);
+                    
+                    // Eliminar el obstáculo al colisionar
+                    this.obstacles.splice(i, 1);
+                    break;
+                }
+            }
+            if (collision) break;
+        }
+        
+        return { collision, collisionPoint, collisionObstacle };
+    }
+    
+    createFailAnimation(x, y) {
+        this.failAnimations.push(new FailAnimation(x, y));
+    }
+}
+
+class Obstacle {
+    constructor(x, y) {
+        this.pos = createVector(x, y);
+        this.size = random(30, 50);
+        this.color = color(255, 0, 0);
+        this.pulsePhase = random(TWO_PI);
+    }
+    
+    update() {
+        // Actualizar fase de pulso para animación
+        this.pulsePhase += 0.05;
+        if (this.pulsePhase > TWO_PI) this.pulsePhase -= TWO_PI;
+    }
+    
+    display() {
+        // Dibujar obstáculo con efecto pulsante
+        const pulseFactor = 1 + 0.1 * sin(this.pulsePhase);
+        
+        // Aura exterior
+        noStroke();
+        for (let i = 5; i > 0; i--) {
+            fill(255, 0, 0, 10);
+            ellipse(this.pos.x, this.pos.y, this.size * (1.2 + i*0.1) * pulseFactor, this.size * (1.2 + i*0.1) * pulseFactor);
+        }
+        
+        // Cuerpo principal
+        fill(255, 0, 0, 200);
+        stroke(255, 100, 100);
+        strokeWeight(2);
+        ellipse(this.pos.x, this.pos.y, this.size * pulseFactor, this.size * pulseFactor);
+        
+        // Patrón interior
+        noStroke();
+        fill(255, 150, 150);
+        const innerSize = this.size * 0.6 * pulseFactor;
+        
+        // Dibujar X
+        stroke(255);
+        strokeWeight(3);
+        line(this.pos.x - innerSize/2, this.pos.y - innerSize/2, this.pos.x + innerSize/2, this.pos.y + innerSize/2);
+        line(this.pos.x + innerSize/2, this.pos.y - innerSize/2, this.pos.x - innerSize/2, this.pos.y + innerSize/2);
+    }
+    
+    checkCollision(x, y) {
+        // Verificar si un punto está colisionando con este obstáculo
+        return dist(x, y, this.pos.x, this.pos.y) < this.size/2;
+    }
+    
+    isOffScreen() {
+        // Verificar si el obstáculo está fuera de la pantalla
+        return (this.pos.x < -50 || this.pos.x > width + 50 || 
+                this.pos.y < -50 || this.pos.y > height + 50);
+    }
+}
+
+class MovingObstacle extends Obstacle {
+    constructor(x, y, vx, vy) {
+        super(x, y);
+        this.velocity = createVector(vx, vy);
+        this.color = color(255, 50, 0); // Color ligeramente diferente para obstáculos móviles
+    }
+    
+    update() {
+        super.update();
+        // Actualizar posición
+        this.pos.add(this.velocity);
+    }
+    
+    display() {
+        // Dibujar obstáculo móvil con efecto de movimiento
+        const pulseFactor = 1 + 0.1 * sin(this.pulsePhase);
+        
+        // Estela de movimiento
+        noStroke();
+        for (let i = 0; i < 5; i++) {
+            fill(255, 50, 0, 30 - i*5);
+            const trailPos = p5.Vector.sub(this.pos, p5.Vector.mult(this.velocity, i*2));
+            ellipse(trailPos.x, trailPos.y, this.size * 0.8, this.size * 0.8);
+        }
+        
+        // Cuerpo principal
+        fill(255, 50, 0, 200);
+        stroke(255, 150, 100);
+        strokeWeight(2);
+        ellipse(this.pos.x, this.pos.y, this.size * pulseFactor, this.size * pulseFactor);
+        
+        // Patrón interior
+        noStroke();
+        fill(255, 200, 150);
+        
+        // Dibujar símbolo de peligro
+        stroke(255);
+        strokeWeight(3);
+        const innerSize = this.size * 0.5;
+        triangle(
+            this.pos.x, this.pos.y - innerSize/2,
+            this.pos.x - innerSize/2, this.pos.y + innerSize/2,
+            this.pos.x + innerSize/2, this.pos.y + innerSize/2
+        );
+        
+        // Punto de exclamación
+        fill(255);
+        noStroke();
+        ellipse(this.pos.x, this.pos.y + innerSize/4, innerSize/6, innerSize/6);
+        rect(this.pos.x - innerSize/12, this.pos.y - innerSize/4, innerSize/6, innerSize/2);
+    }
+}
+
+class StaticObstacle extends Obstacle {
+    constructor(x, y) {
+        super(x, y);
+        this.color = color(200, 0, 0);
+        this.rotationAngle = 0;
+    }
+    
+    update() {
+        super.update();
+        // Rotación lenta
+        this.rotationAngle += 0.02;
+    }
+    
+    display() {
+        // Dibujar obstáculo estático con rotación
+        const pulseFactor = 1 + 0.1 * sin(this.pulsePhase);
+        
+        // Aura exterior
+        noStroke();
+        for (let i = 3; i > 0; i--) {
+            fill(200, 0, 0, 15);
+            ellipse(this.pos.x, this.pos.y, this.size * (1.2 + i*0.1) * pulseFactor, this.size * (1.2 + i*0.1) * pulseFactor);
+        }
+        
+        // Cuerpo principal
+        push();
+        translate(this.pos.x, this.pos.y);
+        rotate(this.rotationAngle);
+        
+        fill(200, 0, 0, 200);
+        stroke(255, 100, 100);
+        strokeWeight(2);
+        
+        // Forma de estrella
+        const spikes = 8;
+        const outerRadius = this.size/2 * pulseFactor;
+        const innerRadius = this.size/4 * pulseFactor;
+        
+        beginShape();
+        for (let i = 0; i < spikes * 2; i++) {
+            const radius = i % 2 === 0 ? outerRadius : innerRadius;
+            const angle = map(i, 0, spikes * 2, 0, TWO_PI);
+            const x = radius * cos(angle);
+            const y = radius * sin(angle);
+            vertex(x, y);
+        }
+        endShape(CLOSE);
+        
+        // Círculo central
+        fill(255, 150, 150);
+        noStroke();
+        ellipse(0, 0, this.size * 0.3, this.size * 0.3);
+        
+        pop();
+    }
+}
+
+class FailAnimation {
+    constructor(x, y) {
+        this.pos = createVector(x, y);
+        this.startTime = millis();
+        this.duration = 2000; // 2 segundos de duración
+        this.particles = [];
+        
+        // Crear partículas de explosión
+        for (let i = 0; i < 50; i++) {
+            this.particles.push({
+                pos: createVector(x, y),
+                vel: p5.Vector.random2D().mult(random(2, 8)),
+                size: random(5, 15),
+                color: color(255, random(0, 100), 0, 255),
+                life: 255
+            });
+        }
+        
+        // Crear ondas expansivas
+        this.waves = [];
+        for (let i = 0; i < 3; i++) {
+            this.waves.push({
+                radius: 0,
+                maxRadius: 200 + i * 50,
+                speed: 5 + i * 2,
+                alpha: 255
+            });
+        }
+    }
+    
+    update() {
+        // Actualizar partículas
+        for (let p of this.particles) {
+            p.pos.add(p.vel);
+            p.vel.mult(0.95); // Desaceleración
+            p.life -= 5;
+        }
+        
+        // Actualizar ondas
+        for (let wave of this.waves) {
+            wave.radius += wave.speed;
+            wave.alpha = map(wave.radius, 0, wave.maxRadius, 255, 0);
+        }
+    }
+    
+    display() {
+        // Dibujar texto de fallo
+        const elapsed = millis() - this.startTime;
+        const alpha = map(elapsed, 0, this.duration, 255, 0);
+        
+        // Dibujar ondas
+        for (let wave of this.waves) {
+            noFill();
+            stroke(255, 0, 0, wave.alpha * 0.7);
+            strokeWeight(3);
+            ellipse(this.pos.x, this.pos.y, wave.radius * 2);
+        }
+        
+        // Dibujar partículas
+        for (let p of this.particles) {
+            if (p.life > 0) {
+                noStroke();
+                fill(red(p.color), green(p.color), blue(p.color), p.life);
+                ellipse(p.pos.x, p.pos.y, p.size);
+            }
+        }
+        
+        // Dibujar texto
+        if (alpha > 0) {
+            push();
+            translate(this.pos.x, this.pos.y);
+            
+            // Efecto de sacudida
+            const shake = 5 * (1 - elapsed / this.duration);
+            translate(random(-shake, shake), random(-shake, shake));
+            
+            // Texto principal
+            textAlign(CENTER, CENTER);
+            textSize(40 + 20 * sin(elapsed * 0.01));
+            fill(255, 0, 0, alpha);
+            stroke(0, 0, 0, alpha * 0.7);
+            strokeWeight(4);
+            text("-10", 0, -40);
+            
+            // Texto secundario
+            textSize(30);
+            fill(255, 50, 50, alpha);
+            stroke(0, 0, 0, alpha * 0.5);
+            strokeWeight(3);
+            text("¡OBSTÁCULO!", 0, 10);
+            
+            pop();
+        }
+    }
+    
+    isDead() {
+        return millis() - this.startTime > this.duration;
+    }
+}

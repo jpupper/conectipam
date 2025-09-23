@@ -22,9 +22,9 @@ class PointServer {
 			ellipse(allPoints[i].x, allPoints[i].y, 30, 30);
 			fill(255);
 			ellipse(allPoints[i].x, allPoints[i].y, 15,15);
-			textSize(80);
+			textSize(20);
 			fill(255,255,0)
-			text(str(allPoints[i].id), allPoints[i].x, allPoints[i].y)
+			text(str(allPoints[i].id), allPoints[i].x+30, allPoints[i].y-30)
 		}
 		
 	}

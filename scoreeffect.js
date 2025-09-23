@@ -13,18 +13,21 @@ class ScoreSystem {
         // Incrementar puntuación
         this.score += points;
         
-        // Actualizar combo
-        const currentTime = millis();
-        if (currentTime - this.comboTimer < this.comboThreshold) {
-            this.comboCount++;
-        } else {
-            this.comboCount = 1;
-        }
-        this.comboTimer = currentTime;
-        
-        // Actualizar combo más alto
-        if (this.comboCount > this.highestCombo) {
-            this.highestCombo = this.comboCount;
+        // Solo actualizar combo para puntos positivos
+        if (points > 0) {
+            // Actualizar combo
+            const currentTime = millis();
+            if (currentTime - this.comboTimer < this.comboThreshold) {
+                this.comboCount++;
+            } else {
+                this.comboCount = 1;
+            }
+            this.comboTimer = currentTime;
+            
+            // Actualizar combo más alto
+            if (this.comboCount > this.highestCombo) {
+                this.highestCombo = this.comboCount;
+            }
         }
         
         // Crear animación de puntos
@@ -43,6 +46,12 @@ class ScoreSystem {
             maxAge: 60,
             comboCount: this.comboCount
         });
+    }
+    
+    resetCombo() {
+        // Reiniciar el combo a cero cuando se golpea un obstáculo
+        this.comboCount = 0;
+        this.comboTimer = 0;
     }
     
     update() {

@@ -5,6 +5,7 @@ let particleSystem;
 let trailSystem;
 let dynamicBackground;
 let scoreSystem;
+let obstacleSystem;
 function setup() {
   createCanvas(windowWidth, windowHeight);
   Pserver = new PointServer();
@@ -14,6 +15,7 @@ function setup() {
   trailSystem = new TrailSystem();
   dynamicBackground = new DynamicBackground();
   scoreSystem = new ScoreSystem();
+  obstacleSystem = new ObstacleSystem();
 }
 
 function draw() {
@@ -32,6 +34,23 @@ function draw() {
   // Actualizar y mostrar el servidor de puntos
   Pserver.display();
   Pserver.update();
+  
+  // Actualizar y mostrar obstáculos
+  obstacleSystem.update();
+  obstacleSystem.display();
+  
+  // Comprobar colisiones con obstáculos
+  const collisionResult = obstacleSystem.checkCollisions(Pserver.getAllPoints());
+  if (collisionResult.collision) {
+    // Penalizar al jugador
+    scoreSystem.addScore(-10, collisionResult.collisionPoint.x, collisionResult.collisionPoint.y);
+    
+    // Reiniciar secuencias activas
+    SQ.reiniciarTodasLasSecuencias();
+    
+    // Reiniciar combo
+    scoreSystem.resetCombo();
+  }
   
   // Actualizar y mostrar efectos de partículas
   particleSystem.update();

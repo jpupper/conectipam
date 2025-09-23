@@ -3,7 +3,7 @@ class SeqManager {
         this.seqs = [];
         this.addSeq();
         this.lt = millis();
-        this.dur = 15000;
+        this.dur = 10000; // Reducido de 15000 a 10000 para acelerar el spawn de secuencias
         // Eliminamos la puntuación interna ya que ahora usamos el sistema de puntuación
     }
 
@@ -239,6 +239,13 @@ class Seq {
         }
         // Restar punto cuando se reinicia una secuencia
         if (scoreSystem) scoreSystem.addScore(-5, width/2, height/2); // Penalización por reiniciar
+    }
+    
+    // Método para reiniciar todas las secuencias activas cuando se golpea un obstáculo
+    reiniciarTodasLasSecuencias() {
+        for (let i = 0; i < this.seqs.length; i++) {
+            this.seqs[i].reiniciarActivos();
+        }
     }
     todosTouch() {
         return this.pnts.every(p => p.active);
