@@ -134,7 +134,7 @@ class ScoreSystem {
         
         // Mostrar vidas
         const lifeSize = 30;
-        const lifeY = 40;
+        const lifeY = 150;
         const lifeSpacing = 40;
         
         textAlign(LEFT, TOP);
@@ -196,6 +196,10 @@ class ScoreSystem {
     }
     
     drawHeart(x, y, size) {
+        // Usar ancho y alto separados para el corazón
+        const ancho = size * 1.2; // Un poco más ancho que alto
+        const alto = size;
+        
         push();
         translate(x, y);
         
@@ -203,23 +207,23 @@ class ScoreSystem {
         fill(0, 0, 0, 100);
         noStroke();
         beginShape();
-        vertex(0, -size/4);
-        bezierVertex(size/4, -size/2, size/2, -size/4, 0, size/2);
-        bezierVertex(-size/2, -size/4, -size/4, -size/2, 0, -size/4);
+        vertex(0, -alto/4);
+        bezierVertex(ancho/4, -alto/2, ancho/2, -alto/4, 0, alto/2);
+        bezierVertex(-ancho/2, -alto/4, -ancho/4, -alto/2, 0, -alto/4);
         endShape(CLOSE);
         
         // Corazón
         fill(255, 0, 0);
         noStroke();
         beginShape();
-        vertex(0, -size/4);
-        bezierVertex(size/4, -size/2, size/2, -size/4, 0, size/2);
-        bezierVertex(-size/2, -size/4, -size/4, -size/2, 0, -size/4);
+        vertex(0, -alto/4);
+        bezierVertex(ancho/4, -alto/2, ancho/2, -alto/4, 0, alto/2);
+        bezierVertex(-ancho/2, -alto/4, -ancho/4, -alto/2, 0, -alto/4);
         endShape(CLOSE);
         
         // Brillo
         fill(255, 255, 255, 100);
-        ellipse(-size/5, -size/5, size/4, size/4);
+        ellipse(-ancho/5, -alto/5, ancho/4, alto/4);
         
         pop();
     }

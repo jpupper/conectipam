@@ -202,16 +202,19 @@ class MovingObstacle extends Obstacle {
         super(x, y);
         this.velocity = createVector(vx, vy);
         this.color = color(255, 50, 0); // Color ligeramente diferente para obstáculos móviles
+        this.rotationAngle = 0;
+        this.rotationSpeed = random(0.01, 0.03) * (random() > 0.5 ? 1 : -1); // Velocidad de rotación aleatoria
     }
     
     update() {
         super.update();
         // Actualizar posición
         this.pos.add(this.velocity);
+        // Actualizar rotación
+        this.rotationAngle += this.rotationSpeed;
     }
     
     display() {
-        // Dibujar obstáculo móvil con efecto de movimiento
         const pulseFactor = 1 + 0.1 * sin(this.pulsePhase);
         
         // Estela de movimiento
@@ -222,31 +225,58 @@ class MovingObstacle extends Obstacle {
             ellipse(trailPos.x, trailPos.y, this.size * 0.8, this.size * 0.8);
         }
         
-        // Cuerpo principal
+        // Aura exterior
+        for (let i = 3; i > 0; i--) {
+            fill(255, 50, 0, 15);
+            ellipse(this.pos.x, this.pos.y, this.size * (1.2 + i*0.1) * pulseFactor, this.size * (1.2 + i*0.1) * pulseFactor);
+        }
+        
+        // Cuerpo principal con forma de estrella similar a los obstáculos estáticos
+        push();
+        translate(this.pos.x, this.pos.y);
+        rotate(this.rotationAngle);
+        
         fill(255, 50, 0, 200);
         stroke(255, 150, 100);
         strokeWeight(2);
-        ellipse(this.pos.x, this.pos.y, this.size * pulseFactor, this.size * pulseFactor);
         
-        // Patrón interior
+        // Forma de estrella con menos picos que los estáticos
+        const spikes = 6;
+        const outerRadius = this.size/2 * pulseFactor;
+        const innerRadius = this.size/3 * pulseFactor;
+        
+        beginShape();
+        for (let i = 0; i < spikes * 2; i++) {
+            const radius = i % 2 === 0 ? outerRadius : innerRadius;
+            const angle = map(i, 0, spikes * 2, 0, TWO_PI);
+            const x = radius * cos(angle);
+            const y = radius * sin(angle);
+            vertex(x, y);
+        }
+        endShape(CLOSE);
+        
+        // Círculo central
+        fill(255, 150, 100);
         noStroke();
-        fill(255, 200, 150);
+        ellipse(0, 0, this.size * 0.3, this.size * 0.3);
         
-        // Dibujar símbolo de peligro
-        stroke(255);
-        strokeWeight(3);
-        const innerSize = this.size * 0.5;
-        triangle(
-            this.pos.x, this.pos.y - innerSize/2,
-            this.pos.x - innerSize/2, this.pos.y + innerSize/2,
-            this.pos.x + innerSize/2, this.pos.y + innerSize/2
-        );
-        
-        // Punto de exclamación
+        // Símbolo de dirección (flecha)
         fill(255);
         noStroke();
-        ellipse(this.pos.x, this.pos.y + innerSize/4, innerSize/6, innerSize/6);
-        rect(this.pos.x - innerSize/12, this.pos.y - innerSize/4, innerSize/6, innerSize/2);
+        const arrowSize = this.size * 0.2;
+        triangle(
+            arrowSize, 0,
+            -arrowSize/2, arrowSize/2,
+            -arrowSize/2, -arrowSize/2
+        );
+        
+        pop();
+    }
+    
+    isOffScreen() {
+        // Asegurarse de que los obstáculos se eliminen cuando salgan de la pantalla
+        return (this.pos.x < -this.size || this.pos.x > width + this.size || 
+                this.pos.y < -this.size || this.pos.y > height + this.size);
     }
 }
 
@@ -255,6 +285,8 @@ class StaticObstacle extends Obstacle {
         super(x, y);
         this.color = color(200, 0, 0);
         this.rotationAngle = 0;
+        this.lifespan = random(5000, 10000); // Vida entre 5 y 10 segundos
+        this.birthTime = millis();
     }
     
     update() {
@@ -264,13 +296,16 @@ class StaticObstacle extends Obstacle {
     }
     
     display() {
-        // Dibujar obstáculo estático con rotación
+        // Calcular tiempo de vida restante
+        const elapsedTime = millis() - this.birthTime;
+        const remainingLifeRatio = 1 - constrain(elapsedTime / this.lifespan, 0, 1);
         const pulseFactor = 1 + 0.1 * sin(this.pulsePhase);
         
-        // Aura exterior
+        // Aura exterior que cambia con el tiempo de vida
         noStroke();
         for (let i = 3; i > 0; i--) {
-            fill(200, 0, 0, 15);
+            const alphaFactor = map(remainingLifeRatio, 0, 1, 5, 15); // Más transparente cuando queda menos vida
+            fill(200, 0, 0, alphaFactor);
             ellipse(this.pos.x, this.pos.y, this.size * (1.2 + i*0.1) * pulseFactor, this.size * (1.2 + i*0.1) * pulseFactor);
         }
         
@@ -279,8 +314,11 @@ class StaticObstacle extends Obstacle {
         translate(this.pos.x, this.pos.y);
         rotate(this.rotationAngle);
         
-        fill(200, 0, 0, 200);
-        stroke(255, 100, 100);
+        // Color que cambia con el tiempo de vida (más claro cuando está por desaparecer)
+        const redValue = map(remainingLifeRatio, 0, 1, 255, 200);
+        const alphaValue = map(remainingLifeRatio, 0, 1, 100, 200);
+        fill(redValue, 0, 0, alphaValue);
+        stroke(255, 100, 100, alphaValue);
         strokeWeight(2);
         
         // Forma de estrella
@@ -298,12 +336,24 @@ class StaticObstacle extends Obstacle {
         }
         endShape(CLOSE);
         
-        // Círculo central
-        fill(255, 150, 150);
+        // Círculo central con indicador de tiempo
+        const centerSize = this.size * 0.3;
+        fill(255, 150, 150, alphaValue);
         noStroke();
-        ellipse(0, 0, this.size * 0.3, this.size * 0.3);
+        ellipse(0, 0, centerSize, centerSize);
+        
+        // Indicador de tiempo restante (como un reloj)
+        if (remainingLifeRatio < 1) {
+            fill(50, 0, 0);
+            arc(0, 0, centerSize * 0.8, centerSize * 0.8, 0, TWO_PI * (1 - remainingLifeRatio));
+        }
         
         pop();
+    }
+    
+    isOffScreen() {
+        // Verificar si el obstáculo está fuera de la pantalla o si su vida ha terminado
+        return super.isOffScreen() || (millis() - this.birthTime > this.lifespan);
     }
 }
 

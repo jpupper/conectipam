@@ -11,7 +11,7 @@ class GameOverAnimation {
                 pos: createVector(width/2, height/2),
                 vel: p5.Vector.random2D().mult(random(2, 10)),
                 size: random(5, 20),
-                color: color(random(150, 255), random(0, 100), random(0, 100), 255),
+                color: color(255, random(0, 50), random(0, 50), 255), // Solo tonos de rojo
                 life: 255
             });
         }
@@ -32,7 +32,7 @@ class GameOverAnimation {
                 targetRotation: 0,
                 size: 0,
                 targetSize: height * 0.15,
-                hue: i * 25 % 360
+                intensity: random(180, 255) // Intensidad del rojo
             });
         }
         
@@ -68,7 +68,7 @@ class GameOverAnimation {
                     pos: createVector(width/2 + random(-width/4, width/4), height/2 + random(-height/4, height/4)),
                     vel: p5.Vector.random2D().mult(random(1, 5)),
                     size: random(3, 15),
-                    color: color(random(150, 255), random(0, 100), random(0, 100), 255),
+                    color: color(255, random(0, 50), random(0, 50), 255), // Solo tonos de rojo
                     life: 255
                 });
             }
@@ -115,10 +115,8 @@ class GameOverAnimation {
             textAlign(CENTER, CENTER);
             text(letter.char, 5, 5);
             
-            // Texto con color basado en hue
-            colorMode(HSB, 360, 100, 100);
-            fill(letter.hue, 80, 100);
-            colorMode(RGB, 255);
+            // Texto en rojo con intensidad variable
+            fill(letter.intensity, 0, 0);
             textSize(letter.size);
             textAlign(CENTER, CENTER);
             text(letter.char, 0, 0);

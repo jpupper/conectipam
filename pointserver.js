@@ -15,7 +15,7 @@ class PointServer {
 		textAlign(LEFT)
 		fill(255);
 		textSize(30);
-		text(`Puntos Totales: ${allPoints.length}`, 40, 40);
+		text(`Pnts: ${allPoints.length}`, 40, 40);
 	  
 		for (let i = 0; i < allPoints.length; i++) {
 			fill(255, 0, 0);

@@ -71,11 +71,13 @@ class DynamicBackground {
                 }
                 
                 // Añadir influencia de ondas expansivas
+                let rippleInfluence = 0;
                 for (let ripple of this.ripples) {
                     const d = dist(ripple.pos.x, ripple.pos.y, xPos, yPos);
-                    if (d < ripple.radius && d > ripple.radius - 30) {
-                        const rippleEffect = map(abs(d - ripple.radius + 15), 0, 15, 10, 0);
+                    if (d < ripple.radius && d > ripple.radius - 50) { // Aumentar el rango de influencia
+                        const rippleEffect = map(abs(d - ripple.radius + 25), 0, 25, 20, 0); // Mayor efecto
                         displacement += rippleEffect;
+                        rippleInfluence += rippleEffect * 0.5;
                     }
                 }
                 
@@ -88,11 +90,25 @@ class DynamicBackground {
                 const dotColor = color(hue, saturation, brightness);
                 colorMode(RGB, 255, 255, 255, 255);
                 
-                // Dibujar punto
+                // Dibujar punto con tamaño aumentado
                 noStroke();
                 fill(dotColor);
-                const size = map(displacement, -15, 15, 2, 6);
-                ellipse(xPos, yPos, size, size);
+                
+                // Tamaño base más grande y con mayor rango de variación
+                const baseSize = map(displacement, -15, 15, 3, 8);
+                
+                // Agregar tamaño extra basado en la influencia de las ondas
+                const extraSize = rippleInfluence * 0.8;
+                const finalSize = baseSize + extraSize;
+                
+                // Dibujar círculo con tamaño dinámico
+                ellipse(xPos, yPos, finalSize, finalSize);
+                
+                // Dibujar brillo central para círculos grandes
+                if (finalSize > 6) {
+                    fill(255, 255, 255, map(finalSize, 6, 15, 30, 100));
+                    ellipse(xPos, yPos, finalSize * 0.4, finalSize * 0.4);
+                }
             }
         }
         
