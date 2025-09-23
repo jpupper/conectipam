@@ -1,34 +1,37 @@
 class ObstacleSystem {
     constructor() {
         this.obstacles = [];
-        this.spawnTimer = 0;
-        this.spawnInterval = 5000; // Intervalo inicial de spawn en milisegundos
-        this.minSpawnInterval = 2000; // Intervalo mínimo de spawn
-        this.obstacleSpeed = 1.5; // Velocidad inicial de los obstáculos
-        this.maxObstacles = 10; // Máximo número de obstáculos simultáneos
-        this.failAnimations = []; // Animaciones de fallo
+        this.failAnimations = [];
+        this.lastStaticObstacleTime = 0;
+        this.lastMovingObstacleTime = 0;
+        this.staticObstacleInterval = CONFIG.obstacles.spawnRate.static;
+        this.movingObstacleInterval = CONFIG.obstacles.spawnRate.moving;
+        this.maxStaticObstacles = CONFIG.obstacles.maxCount.static;
+        this.maxMovingObstacles = CONFIG.obstacles.maxCount.moving;
     }
 
     update() {
         // Generar nuevos obstáculos
-        if (millis() - this.spawnTimer > this.spawnInterval && this.obstacles.length < this.maxObstacles) {
-            this.spawnObstacle();
-            this.spawnTimer = millis();
-            
-            // Reducir gradualmente el intervalo de spawn
-            this.spawnInterval = max(this.minSpawnInterval, this.spawnInterval * 0.98);
+        if (millis() - this.lastStaticObstacleTime > this.staticObstacleInterval && this.obstacles.filter(obstacle => obstacle instanceof StaticObstacle).length < this.maxStaticObstacles) {
+            this.spawnStaticObstacle();
+            this.lastStaticObstacleTime = millis();
         }
-        
+
+        if (millis() - this.lastMovingObstacleTime > this.movingObstacleInterval && this.obstacles.filter(obstacle => obstacle instanceof MovingObstacle).length < this.maxMovingObstacles) {
+            this.spawnMovingObstacle();
+            this.lastMovingObstacleTime = millis();
+        }
+
         // Actualizar obstáculos existentes
         for (let i = this.obstacles.length - 1; i >= 0; i--) {
             this.obstacles[i].update();
-            
+
             // Eliminar obstáculos que salen de la pantalla
             if (this.obstacles[i].isOffScreen()) {
                 this.obstacles.splice(i, 1);
             }
         }
-        
+
         // Actualizar animaciones de fallo
         for (let i = this.failAnimations.length - 1; i >= 0; i--) {
             this.failAnimations[i].update();
@@ -37,106 +40,111 @@ class ObstacleSystem {
             }
         }
     }
-    
+
     display() {
         // Mostrar obstáculos
         for (let obstacle of this.obstacles) {
             obstacle.display();
         }
-        
+
         // Mostrar animaciones de fallo
         for (let anim of this.failAnimations) {
             anim.display();
         }
     }
-    
-    spawnObstacle() {
+
+    spawnStaticObstacle() {
+        // Crear un obstáculo estático en una posición aleatoria
+        // Evitar colocar obstáculos muy cerca de los puntos de secuencia
+        let validPosition = false;
+        let x, y;
+
+        while (!validPosition) {
+            x = random(width * 0.1, width * 0.9);
+            y = random(height * 0.1, height * 0.9);
+
+            // Verificar distancia a puntos de secuencia
+            validPosition = true;
+            for (let seq of SQ.seqs) {
+                for (let pnt of seq.pnts) {
+                    if (dist(x, y, pnt.pos.x, pnt.pos.y) < 100) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                if (!validPosition) break;
+            }
+        }
+
+        this.obstacles.push(new StaticObstacle(x, y));
+    }
+
+    spawnMovingObstacle() {
         // Determinar tipo de obstáculo
         const obstacleType = random(1) < 0.7 ? 'moving' : 'static';
-        
+
         if (obstacleType === 'moving') {
             // Crear un obstáculo móvil que atraviesa la pantalla
             const side = floor(random(4)); // 0: arriba, 1: derecha, 2: abajo, 3: izquierda
             let x, y, vx = 0, vy = 0;
-            
+
             switch (side) {
                 case 0: // arriba
                     x = random(width);
                     y = -30;
-                    vy = this.obstacleSpeed;
+                    vy = CONFIG.obstacles.moving.speed;
                     break;
                 case 1: // derecha
                     x = width + 30;
                     y = random(height);
-                    vx = -this.obstacleSpeed;
+                    vx = -CONFIG.obstacles.moving.speed;
                     break;
                 case 2: // abajo
                     x = random(width);
                     y = height + 30;
-                    vy = -this.obstacleSpeed;
+                    vy = -CONFIG.obstacles.moving.speed;
                     break;
                 case 3: // izquierda
                     x = -30;
                     y = random(height);
-                    vx = this.obstacleSpeed;
+                    vx = CONFIG.obstacles.moving.speed;
                     break;
             }
-            
+
             this.obstacles.push(new MovingObstacle(x, y, vx, vy));
-        } else {
-            // Crear un obstáculo estático en una posición aleatoria
-            // Evitar colocar obstáculos muy cerca de los puntos de secuencia
-            let validPosition = false;
-            let x, y;
-            
-            while (!validPosition) {
-                x = random(width * 0.1, width * 0.9);
-                y = random(height * 0.1, height * 0.9);
-                
-                // Verificar distancia a puntos de secuencia
-                validPosition = true;
-                for (let seq of SQ.seqs) {
-                    for (let pnt of seq.pnts) {
-                        if (dist(x, y, pnt.pos.x, pnt.pos.y) < 100) {
-                            validPosition = false;
-                            break;
-                        }
-                    }
-                    if (!validPosition) break;
-                }
-            }
-            
-            this.obstacles.push(new StaticObstacle(x, y));
         }
     }
-    
+
     checkCollisions(points) {
         // Verificar colisiones entre puntos del jugador y obstáculos
         let collision = false;
         let collisionPoint = null;
-        let collisionObstacle = null;
-        
-        for (let point of points) {
-            for (let i = this.obstacles.length - 1; i >= 0; i--) {
-                if (this.obstacles[i].checkCollision(point.x, point.y)) {
+
+        // Comprobar colisiones con cada obstáculo
+        for (let obstacle of this.obstacles) {
+            for (let point of points) {
+                const d = dist(obstacle.pos.x, obstacle.pos.y, point.x, point.y);
+                if (d < obstacle.size / 2) {
                     collision = true;
-                    collisionPoint = point;
-                    collisionObstacle = this.obstacles[i];
-                    
+                    collisionPoint = createVector(point.x, point.y);
+
                     // Crear animación de fallo
                     this.createFailAnimation(point.x, point.y);
-                    
-                    // Eliminar el obstáculo al colisionar
-                    this.obstacles.splice(i, 1);
+
+                    // Solo registramos la primera colisión
                     break;
                 }
             }
             if (collision) break;
         }
-        
-        return { collision, collisionPoint, collisionObstacle };
+
+        return {
+            collision,
+            collisionPoint,
+            penalty: CONFIG.obstacles.penalty // Devolver la penalización configurada
+        };
     }
-    
+
     createFailAnimation(x, y) {
         this.failAnimations.push(new FailAnimation(x, y));
     }
@@ -145,8 +153,15 @@ class ObstacleSystem {
 class Obstacle {
     constructor(x, y) {
         this.pos = createVector(x, y);
-        this.size = random(50, 80); // Obstáculos más grandes
-        this.color = color(255, 0, 0);
+        this.size = random(
+            CONFIG.obstacles.static.size.min, 
+            CONFIG.obstacles.static.size.max
+        );
+        this.color = color(
+            CONFIG.obstacles.static.color[0],
+            CONFIG.obstacles.static.color[1],
+            CONFIG.obstacles.static.color[2]
+        );
         this.pulsePhase = random(TWO_PI);
     }
     
@@ -201,9 +216,22 @@ class MovingObstacle extends Obstacle {
     constructor(x, y, vx, vy) {
         super(x, y);
         this.velocity = createVector(vx, vy);
-        this.color = color(255, 50, 0); // Color ligeramente diferente para obstáculos móviles
+        this.color = color(
+            CONFIG.obstacles.moving.color[0],
+            CONFIG.obstacles.moving.color[1],
+            CONFIG.obstacles.moving.color[2]
+        );
         this.rotationAngle = 0;
-        this.rotationSpeed = random(0.01, 0.03) * (random() > 0.5 ? 1 : -1); // Velocidad de rotación aleatoria
+        this.rotationSpeed = random(
+            CONFIG.obstacles.moving.rotationSpeed.min, 
+            CONFIG.obstacles.moving.rotationSpeed.max
+        ) * (random() > 0.5 ? 1 : -1); // Velocidad de rotación aleatoria
+        
+        // Ajustar tamaño según configuración
+        this.size = random(
+            CONFIG.obstacles.moving.size.min, 
+            CONFIG.obstacles.moving.size.max
+        );
     }
     
     update() {
@@ -241,7 +269,7 @@ class MovingObstacle extends Obstacle {
         strokeWeight(2);
         
         // Forma de estrella con menos picos que los estáticos
-        const spikes = 6;
+        const spikes = CONFIG.obstacles.moving.spikes;
         const outerRadius = this.size/2 * pulseFactor;
         const innerRadius = this.size/3 * pulseFactor;
         
@@ -283,16 +311,23 @@ class MovingObstacle extends Obstacle {
 class StaticObstacle extends Obstacle {
     constructor(x, y) {
         super(x, y);
-        this.color = color(200, 0, 0);
+        this.color = color(
+            CONFIG.obstacles.static.color[0],
+            CONFIG.obstacles.static.color[1],
+            CONFIG.obstacles.static.color[2]
+        );
         this.rotationAngle = 0;
-        this.lifespan = random(5000, 10000); // Vida entre 5 y 10 segundos
+        this.lifespan = random(
+            CONFIG.obstacles.static.lifespan.min, 
+            CONFIG.obstacles.static.lifespan.max
+        );
         this.birthTime = millis();
     }
     
     update() {
         super.update();
         // Rotación lenta
-        this.rotationAngle += 0.02;
+        this.rotationAngle += CONFIG.obstacles.static.rotationSpeed;
     }
     
     display() {
@@ -322,7 +357,7 @@ class StaticObstacle extends Obstacle {
         strokeWeight(2);
         
         // Forma de estrella
-        const spikes = 8;
+        const spikes = CONFIG.obstacles.static.spikes;
         const outerRadius = this.size/2 * pulseFactor;
         const innerRadius = this.size/4 * pulseFactor;
         

@@ -8,6 +8,9 @@ let scoreSystem;
 let obstacleSystem;
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  frameRate(CONFIG.general.frameRate);
+  
+  // Inicializar sistemas
   Pserver = new PointServer();
   // PNT = new PlayerPntsManager();
   SQ = new SeqManager();
@@ -44,7 +47,7 @@ function draw() {
     const collisionResult = obstacleSystem.checkCollisions(Pserver.getAllPoints());
     if (collisionResult.collision) {
       // Penalizar al jugador
-      scoreSystem.addScore(-10, collisionResult.collisionPoint.x, collisionResult.collisionPoint.y);
+      scoreSystem.addScore(-collisionResult.penalty, collisionResult.collisionPoint.x, collisionResult.collisionPoint.y);
       
       // Perder una vida
       scoreSystem.loseLife();

@@ -1,10 +1,10 @@
 class DynamicBackground {
     constructor() {
         this.waves = [];
-        this.numWaves = 3;
+        this.numWaves = CONFIG.background.waves.count;
         this.ripples = [];
-        this.maxRipples = 30; // Aumentar el número máximo de ondas
-        this.gridSize = 30;
+        this.maxRipples = CONFIG.background.ripples.max;
+        this.gridSize = CONFIG.background.grid.size;
         this.cols = Math.ceil(width / this.gridSize) + 1;
         this.rows = Math.ceil(height / this.gridSize) + 1;
         this.gridPoints = []; // Almacenar el estado de los puntos de la grilla
@@ -12,28 +12,28 @@ class DynamicBackground {
         // Crear ondas base
         for (let i = 0; i < this.numWaves; i++) {
             this.waves.push({
-                amplitude: random(5, 15),
-                period: random(500, 1500),
+                amplitude: random(CONFIG.background.waves.amplitude.min, CONFIG.background.waves.amplitude.max),
+                period: random(CONFIG.background.waves.period.min, CONFIG.background.waves.period.max),
                 phase: random(TWO_PI),
-                speed: random(0.001, 0.005)
+                speed: random(CONFIG.background.waves.speed.min, CONFIG.background.waves.speed.max)
             });
         }
     }
     
     addRipple(x, y) {
-        // Añadir una nueva onda expansiva con más parámetros para un efecto más suave
+        // Añadir una nueva onda expansiva con parámetros de configuración
         this.ripples.push({
             pos: createVector(x, y),
             radius: 0,
-            maxRadius: random(150, 400), // Ondas más grandes
-            speed: random(1.5, 4), // Velocidad más controlada
+            maxRadius: random(CONFIG.background.ripples.radius.min, CONFIG.background.ripples.radius.max),
+            speed: random(CONFIG.background.ripples.speed.min, CONFIG.background.ripples.speed.max),
             alpha: 255,
-            thickness: random(20, 50), // Grosor variable de la onda
+            thickness: random(CONFIG.background.ripples.thickness.min, CONFIG.background.ripples.thickness.max),
             birthTime: millis(),
-            lifespan: random(3000, 6000) // Vida más larga (3-6 segundos)
+            lifespan: random(CONFIG.background.ripples.lifespan.min, CONFIG.background.ripples.lifespan.max)
         });
         
-        // Limitar la cantidad de ondas pero permitir más
+        // Limitar la cantidad de ondas
         if (this.ripples.length > this.maxRipples) {
             this.ripples.shift();
         }
@@ -130,20 +130,22 @@ class DynamicBackground {
                 
                 // Actualizar desplazamiento con inercia (movimiento suave)
                 point.targetDisplacement = newTargetDisplacement;
-                point.displacement = lerp(point.displacement, point.targetDisplacement, 0.2);
+                point.displacement = lerp(point.displacement, point.targetDisplacement, CONFIG.background.grid.inertia);
                 
                 // Actualizar tamaño con inercia
-                const baseSize = map(point.displacement, -15, 15, 3, 8);
+                const baseSize = map(point.displacement, -15, 15, 
+                                     CONFIG.background.grid.pointSizeRange.min, 
+                                     CONFIG.background.grid.pointSizeRange.max);
                 const extraSize = rippleInfluence * 0.8;
                 point.targetSize = baseSize + extraSize;
-                point.size = lerp(point.size, point.targetSize, 0.3);
+                point.size = lerp(point.size, point.targetSize, CONFIG.background.grid.inertia * 1.5);
             }
         }
     }
     
     display() {
         // Dibujar fondo base
-        background(0, 0, 20); // Azul muy oscuro casi negro
+        background(CONFIG.background.color[0], CONFIG.background.color[1], CONFIG.background.color[2]); // Color de fondo configurado
         
         // Dibujar la cuadrícula de puntos usando los estados almacenados
         for (let x = 0; x < this.cols; x++) {
@@ -158,9 +160,15 @@ class DynamicBackground {
                 const displacement = point.displacement;
                 
                 // Calcular color basado en posición y desplazamiento
-                const hue = map(displacement, -15, 15, 200, 250); // Tonos azules
-                const saturation = map(displacement, -15, 15, 50, 100);
-                const brightness = map(displacement, -15, 15, 10, 40);
+                const hue = map(displacement, -15, 15, 
+                               CONFIG.background.grid.colors.hueRange[0], 
+                               CONFIG.background.grid.colors.hueRange[1]);
+                const saturation = map(displacement, -15, 15, 
+                                      CONFIG.background.grid.colors.satRange[0], 
+                                      CONFIG.background.grid.colors.satRange[1]);
+                const brightness = map(displacement, -15, 15, 
+                                     CONFIG.background.grid.colors.briRange[0], 
+                                     CONFIG.background.grid.colors.briRange[1]);
                 
                 colorMode(HSB, 360, 100, 100, 255);
                 const dotColor = color(hue, saturation, brightness);
@@ -192,7 +200,10 @@ class DynamicBackground {
                 const ringOffset = i * 5;
                 
                 noFill();
-                stroke(100, 150, 255, ringAlpha);
+                stroke(CONFIG.background.ripples.color[0], 
+                       CONFIG.background.ripples.color[1], 
+                       CONFIG.background.ripples.color[2], 
+                       ringAlpha);
                 strokeWeight(2 - i * 0.5);
                 ellipse(ripple.pos.x, ripple.pos.y, (ripple.radius - ringOffset) * 2);
             }

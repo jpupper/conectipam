@@ -2,6 +2,7 @@ class ParticleSystem {
     constructor() {
         this.explosionParticles = [];
         this.hoverParticles = [];
+        this.energyParticles = []; // Nuevas partículas para efectos de energía
     }
 
     // Create explosion particles when a sequence is completed
@@ -20,6 +21,11 @@ class ParticleSystem {
         }
     }
 
+    // Añadir una partícula individual (para efectos de energía)
+    addParticle(x, y, particleColor, size, velocity) {
+        this.energyParticles.push(new EnergyParticle(x, y, particleColor, size, velocity));
+    }
+    
     update() {
         // Update and remove explosion particles
         for (let i = this.explosionParticles.length - 1; i >= 0; i--) {
@@ -36,6 +42,14 @@ class ParticleSystem {
                 this.hoverParticles.splice(i, 1);
             }
         }
+        
+        // Update and remove energy particles
+        for (let i = this.energyParticles.length - 1; i >= 0; i--) {
+            this.energyParticles[i].update();
+            if (this.energyParticles[i].isDead()) {
+                this.energyParticles.splice(i, 1);
+            }
+        }
     }
 
     display() {
@@ -47,6 +61,11 @@ class ParticleSystem {
         // Display hover particles
         for (let i = 0; i < this.hoverParticles.length; i++) {
             this.hoverParticles[i].display();
+        }
+        
+        // Display energy particles
+        for (let i = 0; i < this.energyParticles.length; i++) {
+            this.energyParticles[i].display();
         }
     }
 }
@@ -136,6 +155,65 @@ class HoverParticle {
         noStroke();
         fill(red(this.color), green(this.color), blue(this.color), this.lifespan);
         ellipse(this.position.x, this.position.y, this.size, this.size);
+    }
+
+    isDead() {
+        return this.lifespan <= 0;
+    }
+}
+
+// Nueva clase para partículas de energía que emanan del score
+class EnergyParticle {
+    constructor(x, y, particleColor, size, velocity) {
+        this.position = createVector(x, y);
+        this.velocity = velocity || createVector(random(-2, 2), random(-2, 2));
+        this.acceleration = createVector(0, 0);
+        this.lifespan = 255;
+        this.color = particleColor || color(255, 255, 255, 200);
+        this.size = size || random(3, 8);
+        this.initialSize = this.size;
+        this.rotationAngle = random(TWO_PI);
+        this.rotationSpeed = random(-0.1, 0.1);
+    }
+
+    update() {
+        // Añadir un poco de movimiento aleatorio
+        this.acceleration = createVector(random(-0.1, 0.1), random(-0.1, 0.1));
+        this.velocity.add(this.acceleration);
+        this.position.add(this.velocity);
+        
+        // Limitar velocidad
+        this.velocity.limit(3);
+        
+        // Reducir vida y tamaño gradualmente
+        this.lifespan -= 5;
+        this.size = map(this.lifespan, 255, 0, this.initialSize, 0);
+        
+        // Actualizar rotación
+        this.rotationAngle += this.rotationSpeed;
+    }
+
+    display() {
+        push();
+        translate(this.position.x, this.position.y);
+        rotate(this.rotationAngle);
+        
+        // Dibujar partícula con brillo
+        noStroke();
+        
+        // Halo exterior
+        fill(red(this.color), green(this.color), blue(this.color), this.lifespan * 0.3);
+        ellipse(0, 0, this.size * 2, this.size * 2);
+        
+        // Partícula principal
+        fill(red(this.color), green(this.color), blue(this.color), this.lifespan);
+        ellipse(0, 0, this.size, this.size);
+        
+        // Brillo central
+        fill(255, 255, 255, this.lifespan * 0.8);
+        ellipse(0, 0, this.size * 0.4, this.size * 0.4);
+        
+        pop();
     }
 
     isDead() {

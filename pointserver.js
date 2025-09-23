@@ -1,7 +1,8 @@
 class PointServer {
 	constructor() {
-		this.points = []; //lidarpoints
-		this.inputPoints = []; // Array separado para mouse/touch
+		this.points = [];
+		this.inputPoints = []; 
+		this.maxPoints = CONFIG.points.maxPoints;
 		
 		// Inicializar con algunos puntos de ejemplo
 		//this.points.push(new LidarPoint(width/2, height*1/4, 0));
@@ -17,16 +18,45 @@ class PointServer {
 		textSize(30);
 		text(`Pnts: ${allPoints.length}`, 40, 40);
 	  
+		// Dibujar conexiones entre puntos cercanos
+		stroke(
+			CONFIG.points.connectionColor[0],
+			CONFIG.points.connectionColor[1],
+			CONFIG.points.connectionColor[2],
+			CONFIG.points.connectionColor[3]
+		);
+		strokeWeight(CONFIG.points.connectionThickness);
 		for (let i = 0; i < allPoints.length; i++) {
-			fill(255, 0, 0);
-			ellipse(allPoints[i].x, allPoints[i].y, 30, 30);
+			for (let j = i + 1; j < allPoints.length; j++) {
+				const d = dist(allPoints[i].x, allPoints[i].y, allPoints[j].x, allPoints[j].y);
+				if (d < CONFIG.points.connectionDistance) { // Distancia máxima para conectar
+					const alpha = map(d, 0, CONFIG.points.connectionDistance, CONFIG.points.connectionColor[3], 0);
+					stroke(
+						CONFIG.points.connectionColor[0],
+						CONFIG.points.connectionColor[1],
+						CONFIG.points.connectionColor[2],
+						alpha
+					);
+					line(allPoints[i].x, allPoints[i].y, allPoints[j].x, allPoints[j].y);
+				}
+			}
+		}
+		
+		// Dibujar los puntos
+		for (let i = 0; i < allPoints.length; i++) {
+			fill(
+				CONFIG.points.color[0],
+				CONFIG.points.color[1],
+				CONFIG.points.color[2]
+			);
+			noStroke();
+			ellipse(allPoints[i].x, allPoints[i].y, CONFIG.points.size, CONFIG.points.size);
 			fill(255);
 			ellipse(allPoints[i].x, allPoints[i].y, 15,15);
 			textSize(20);
 			fill(255,255,0)
 			text(str(allPoints[i].id), allPoints[i].x+30, allPoints[i].y-30)
 		}
-		
 	}
 	getAllPoints(){
 		return [...this.points, ...this.inputPoints];

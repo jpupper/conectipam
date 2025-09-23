@@ -1,24 +1,35 @@
 class GameOverAnimation {
     constructor() {
         this.startTime = millis();
-        this.duration = 5000; // Duración total de la animación en ms
+        this.duration = CONFIG.gameOver.duration; // Duración total de la animación en ms
         this.particles = [];
         this.letters = [];
         
         // Crear partículas para el efecto explosivo
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < CONFIG.gameOver.particles.count; i++) {
             this.particles.push({
                 pos: createVector(width/2, height/2),
-                vel: p5.Vector.random2D().mult(random(2, 10)),
-                size: random(5, 20),
-                color: color(255, random(0, 50), random(0, 50), 255), // Solo tonos de rojo
+                vel: p5.Vector.random2D().mult(random(
+                    CONFIG.gameOver.particles.speed.min, 
+                    CONFIG.gameOver.particles.speed.max
+                )),
+                size: random(
+                    CONFIG.gameOver.particles.size.min, 
+                    CONFIG.gameOver.particles.size.max
+                ),
+                color: color(
+                    CONFIG.gameOver.text.color[0], 
+                    random(0, 50), 
+                    random(0, 50), 
+                    255
+                ), // Solo tonos de rojo
                 life: 255
             });
         }
         
         // Configurar letras para "GAME OVER"
         const text = "GAME OVER";
-        const spacing = width * 0.07;
+        const spacing = width * CONFIG.gameOver.text.spacing;
         const startX = width/2 - (text.length * spacing) / 2 + spacing/2;
         
         for (let i = 0; i < text.length; i++) {
@@ -31,7 +42,7 @@ class GameOverAnimation {
                 rotation: random(TWO_PI),
                 targetRotation: 0,
                 size: 0,
-                targetSize: height * 0.15,
+                targetSize: height * CONFIG.gameOver.text.size,
                 intensity: random(180, 255) // Intensidad del rojo
             });
         }
@@ -67,8 +78,16 @@ class GameOverAnimation {
                 this.particles.push({
                     pos: createVector(width/2 + random(-width/4, width/4), height/2 + random(-height/4, height/4)),
                     vel: p5.Vector.random2D().mult(random(1, 5)),
-                    size: random(3, 15),
-                    color: color(255, random(0, 50), random(0, 50), 255), // Solo tonos de rojo
+                    size: random(
+                        CONFIG.gameOver.particles.size.min / 2, 
+                        CONFIG.gameOver.particles.size.max / 2
+                    ),
+                    color: color(
+                        CONFIG.gameOver.text.color[0], 
+                        random(0, 50), 
+                        random(0, 50), 
+                        255
+                    ), // Solo tonos de rojo
                     life: 255
                 });
             }
@@ -116,7 +135,11 @@ class GameOverAnimation {
             text(letter.char, 5, 5);
             
             // Texto en rojo con intensidad variable
-            fill(letter.intensity, 0, 0);
+            fill(
+                letter.intensity * CONFIG.gameOver.text.color[0]/255, 
+                letter.intensity * CONFIG.gameOver.text.color[1]/255, 
+                letter.intensity * CONFIG.gameOver.text.color[2]/255
+            );
             textSize(letter.size);
             textAlign(CENTER, CENTER);
             text(letter.char, 0, 0);
